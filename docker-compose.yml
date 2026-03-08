@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # Redis 캐시 서버
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Spring Boot 백엔드
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - STOCK_API_KEY=${STOCK_API_KEY:-demo}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # React 프론트엔드
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  redis-data:

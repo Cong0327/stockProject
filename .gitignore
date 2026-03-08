@@ -1,0 +1,25 @@
+# 환경 변수
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Backend
+backend/build/
+backend/.gradle/
+backend/bin/
+backend/out/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Docker
+docker/data/
+
+# OS
+.DS_Store
+Thumbs.db
