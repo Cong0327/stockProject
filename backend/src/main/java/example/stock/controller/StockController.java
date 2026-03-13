@@ -38,8 +38,9 @@ public class StockController {
     @GetMapping("/search")
     public ResponseEntity<List<StockSearchResponse>> searchStock(
             @RequestParam String keyword) {
-        log.debug("종목 검색 요청: keyword={}", keyword);
+        log.info("종목 검색 요청: keyword={}", keyword);
         List<StockSearchResponse> results = stockService.searchStock(keyword);
+        log.info("종목 검색 응답: keyword={}, 결과 수={}", keyword, results.size());
         return ResponseEntity.ok(results);
     }
 
@@ -54,8 +55,10 @@ public class StockController {
     public ResponseEntity<StockCandleResponse> getCandles(
             @RequestParam String symbol,
             @RequestParam(defaultValue = "1day") String interval) {
-        log.debug("캔들 데이터 조회 요청: symbol={}, interval={}", symbol, interval);
+        log.info("캔들 데이터 조회 요청: symbol={}, interval={}", symbol, interval);
         StockCandleResponse response = stockService.getCandles(symbol, interval);
+        log.info("캔들 데이터 조회 응답: symbol={}, 캔들 수={}", symbol,
+                response.getCandles() != null ? response.getCandles().size() : 0);
         return ResponseEntity.ok(response);
     }
 }

@@ -56,7 +56,7 @@ class WebSocketManager {
 
       // 연결 성공 핸들러
       this.ws.onopen = () => {
-        console.log('웹소켓 연결 성공');
+        console.log(`[WS] 웹소켓 연결 성공: ${this.url}`);
         this._state = 'connected';
         this.reconnectAttempts = 0;
 
@@ -69,17 +69,18 @@ class WebSocketManager {
       // 메시지 수신 핸들러
       this.ws.onmessage = (event: MessageEvent) => {
         try {
+          console.log('[WS] 메시지 수신:', event.data);
           const data: RealTimePrice = JSON.parse(event.data);
           // 등록된 모든 콜백에 데이터 전달
           this.messageCallbacks.forEach((callback) => callback(data));
         } catch (error) {
-          console.error('웹소켓 메시지 파싱 오류:', error);
+          console.error('[WS] 메시지 파싱 오류:', error);
         }
       };
 
       // 연결 종료 핸들러
-      this.ws.onclose = () => {
-        console.log('웹소켓 연결 종료');
+      this.ws.onclose = (event: CloseEvent) => {
+        console.log(`[WS] 웹소켓 연결 종료: code=${event.code}, reason=${event.reason}`);
         this._state = 'disconnected';
 
         // 재연결이 필요한 경우 지수 백오프로 재시도
@@ -90,7 +91,7 @@ class WebSocketManager {
 
       // 에러 핸들러
       this.ws.onerror = (error) => {
-        console.error('웹소켓 오류 발생:', error);
+        console.error('[WS] 웹소켓 오류 발생:', error);
       };
     } catch (error) {
       console.error('웹소켓 연결 생성 실패:', error);
@@ -139,7 +140,7 @@ class WebSocketManager {
         symbol: symbol,
       });
       this.ws.send(message);
-      console.log(`종목 구독 시작: ${symbol}`);
+      console.log(`[WS] 종목 구독 전송: ${symbol}, readyState=${this.ws.readyState}`);
     }
   }
 
@@ -154,7 +155,7 @@ class WebSocketManager {
         symbol: symbol,
       });
       this.ws.send(message);
-      console.log(`종목 구독 해제: ${symbol}`);
+      console.log(`[WS] 종목 구독 해제: ${symbol}`);
     }
 
     if (this.currentSymbol === symbol) {
@@ -200,7 +201,7 @@ class WebSocketManager {
     this._state = 'disconnected';
     this.currentSymbol = null;
     this.reconnectAttempts = 0;
-    console.log('웹소켓 연결 해제 완료');
+    console.log('[WS] 웹소켓 연결 해제 완료');
   }
 }
 

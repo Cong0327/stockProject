@@ -64,10 +64,12 @@ export const useStockStore = create<StockStore>((set) => ({
       return;
     }
 
+    console.log(`[Store] 종목 검색 시작: keyword=${keyword}`);
     set({ isLoading: true, error: null });
 
     try {
       const results = await searchStocks(keyword);
+      console.log(`[Store] 종목 검색 완료: ${results.length}건`, results);
       set({ searchResults: results, isLoading: false });
     } catch (error) {
       // 검색 실패 시 에러 메시지 설정
@@ -79,10 +81,12 @@ export const useStockStore = create<StockStore>((set) => ({
 
   // 캔들 차트 데이터 조회
   fetchCandles: async (symbol: string, interval: string = '1day') => {
+    console.log(`[Store] 캔들 데이터 요청: symbol=${symbol}, interval=${interval}`);
     set({ isLoading: true, error: null });
 
     try {
       const data = await getCandles(symbol, interval);
+      console.log(`[Store] 캔들 데이터 완료: ${data.length}건`, data);
       set({ candles: data, isLoading: false });
     } catch (error) {
       // 데이터 조회 실패 시 에러 메시지 설정

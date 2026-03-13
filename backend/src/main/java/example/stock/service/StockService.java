@@ -39,12 +39,12 @@ public class StockService {
         // 캐시에서 먼저 조회한다
         Optional<List<StockSearchResponse>> cached = cacheService.getCachedSearchResult(keyword);
         if (cached.isPresent()) {
-            log.debug("검색 캐시 적중: keyword={}", keyword);
+            log.info("검색 캐시 적중: keyword={}", keyword);
             return cached.get();
         }
 
         // 캐시 미스: API 호출 후 캐싱한다
-        log.debug("검색 캐시 미스: API 호출 시작, keyword={}", keyword);
+        log.info("검색 캐시 미스: API 호출 시작, keyword={}", keyword);
         try {
             List<StockSearchResponse> results = apiService.searchSymbol(keyword).block();
             if (results != null && !results.isEmpty()) {
@@ -69,12 +69,12 @@ public class StockService {
         // 캐시에서 먼저 조회한다
         Optional<StockCandleResponse> cached = cacheService.getCachedCandles(symbol, interval);
         if (cached.isPresent()) {
-            log.debug("캔들 캐시 적중: symbol={}, interval={}", symbol, interval);
+            log.info("캔들 캐시 적중: symbol={}, interval={}", symbol, interval);
             return cached.get();
         }
 
         // 캐시 미스: API 호출 후 캐싱한다
-        log.debug("캔들 캐시 미스: API 호출 시작, symbol={}, interval={}", symbol, interval);
+        log.info("캔들 캐시 미스: API 호출 시작, symbol={}, interval={}", symbol, interval);
         try {
             StockCandleResponse response = apiService.getCandles(symbol, interval).block();
             if (response != null && response.getCandles() != null && !response.getCandles().isEmpty()) {
