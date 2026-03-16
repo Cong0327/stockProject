@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   application:
@@ -11,8 +11,7 @@ spring:
     password:
   h2:
     console:
-      enabled: true
-      path: /h2-console
+      enabled: false
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -24,12 +23,16 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
 stock:
   api:
     key: ${STOCK_API_KEY:demo}
     base-url: https://api.twelvedata.com
 
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+
 logging:
   level:
-    example.stock: DEBUG
+    example.stock: INFO
