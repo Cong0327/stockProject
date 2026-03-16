@@ -1,10 +1,10 @@
 FROM gradle:8.5-jdk17 AS build
 WORKDIR /app
 
-COPY build.gradle settings.gradle ./
+COPY backend/build.gradle backend/settings.gradle ./
 RUN gradle dependencies --no-daemon
 
-COPY src ./src
+COPY backend/src ./src
 RUN gradle build -x test --no-daemon
 
 FROM eclipse-temurin:17-jre
