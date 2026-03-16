@@ -1,0 +1,8 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/api/stock/search?keyword=test"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
