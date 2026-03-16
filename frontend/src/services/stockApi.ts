@@ -20,7 +20,7 @@ export interface StockSearchResult {
 }
 
 export interface CandleData {
-  time: string;
+  time: string | number;
   open: number;
   high: number;
   low: number;
@@ -131,15 +131,25 @@ export async function getCandles(
       params: { symbol, interval },
     });
 
+    const isIntraday = ['1min', '5min', '15min', '30min', '1hour'].includes(interval);
+
     const candles = (response.data.candles || []).map((c) => ({
-      time: c.datetime,
+      // 분봉/시간봉: Unix timestamp(초)로 변환 (lightweight-charts 요구사항)
+      // 일봉 이상: "YYYY-MM-DD" 문자열 그대로 사용
+      time: isIntraday
+        ? Math.floor(new Date(c.datetime.replace(' ', 'T') + 'Z').getTime() / 1000)
+        : c.datetime.split(' ')[0],
       open: c.open,
       high: c.high,
       low: c.low,
       close: c.close,
       volume: c.volume,
     }));
-    candles.sort((a, b) => a.time.localeCompare(b.time));
+    candles.sort((a, b) =>
+      typeof a.time === 'number'
+        ? (a.time as number) - (b.time as number)
+        : String(a.time).localeCompare(String(b.time))
+    );
 
     setCache(cacheKey, candles, CANDLE_CACHE_TTL);
     return { candles, fromCache: false, isStale: false };

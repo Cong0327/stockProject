@@ -100,12 +100,15 @@ public class StockApiService {
                     .build());
         }
 
+        // 분봉은 데이터를 많이 가져와야 차트가 자연스럽게 보임
+        int outputSize = interval.contains("min") ? 120 : interval.contains("hour") ? 80 : 30;
+
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/time_series")
                         .queryParam("symbol", symbol)
                         .queryParam("interval", interval)
-                        .queryParam("outputsize", 30)
+                        .queryParam("outputsize", outputSize)
                         .queryParam("apikey", apiKey)
                         .build())
                 .retrieve()
