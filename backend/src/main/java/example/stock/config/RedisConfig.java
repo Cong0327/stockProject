@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
@@ -27,6 +28,15 @@ import java.time.Duration;
 public class RedisConfig {
 
     private static final Logger log = LoggerFactory.getLogger(RedisConfig.class);
+
+    @Value("${spring.data.redis.host:localhost}")
+    private String redisHost;
+
+    @Value("${spring.data.redis.port:6379}")
+    private int redisPort;
+
+    @Value("${spring.data.redis.password:}")
+    private String redisPassword;
 
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
@@ -54,6 +64,11 @@ public class RedisConfig {
     @Bean
     @Primary
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        log.info("=== Redis 연결 설정 ===");
+        log.info("  host: {}", redisHost);
+        log.info("  port: {}", redisPort);
+        log.info("  password 설정 여부: {}", (redisPassword != null && !redisPassword.isEmpty()) ? "YES (길이=" + redisPassword.length() + ")" : "NO");
+
         try {
             connectionFactory.getConnection().ping();
 
