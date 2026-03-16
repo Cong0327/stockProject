@@ -29,6 +29,9 @@ public class RedisConfig {
 
     private static final Logger log = LoggerFactory.getLogger(RedisConfig.class);
 
+    @Value("${spring.data.redis.url:}")
+    private String redisUrl;
+
     @Value("${spring.data.redis.host:localhost}")
     private String redisHost;
 
@@ -65,6 +68,7 @@ public class RedisConfig {
     @Primary
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         log.info("=== Redis 연결 설정 ===");
+        log.info("  url: {}", redisUrl != null && !redisUrl.isEmpty() ? redisUrl.replaceAll("://.*@", "://*****@") : "미설정");
         log.info("  host: {}", redisHost);
         log.info("  port: {}", redisPort);
         log.info("  password 설정 여부: {}", (redisPassword != null && !redisPassword.isEmpty()) ? "YES (길이=" + redisPassword.length() + ")" : "NO");
@@ -83,7 +87,11 @@ public class RedisConfig {
                     .cacheDefaults(config)
                     .build();
         } catch (Exception e) {
-            log.warn("Redis 연결 실패 — 인메모리 캐시로 폴백: {}", e.getMessage());
+            log.warn("Redis 연결 실패 — 인메모리 캐시로 폴백");
+            log.warn("  에러: {}", e.getMessage());
+            if (e.getCause() != null) {
+                log.warn("  원인: {}", e.getCause().getMessage());
+            }
             return new ConcurrentMapCacheManager();
         }
     }
