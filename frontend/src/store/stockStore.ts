@@ -1,118 +1,150 @@
 import { create } from 'zustand';
-import { searchStocks, getCandles } from '../services/stockApi';
-import type { StockSearchResult, CandleData } from '../services/stockApi';
+import { searchStocks, getCandles, getMarketQuotes, RateLimitError } from '../services/stockApi';
+import type { StockSearchResult, CandleData, MarketQuote } from '../services/stockApi';
 
-// 실시간 가격 정보 타입 정의
 interface CurrentPrice {
   symbol: string;
   price: number;
   time: number;
 }
 
-// 스토어 상태 타입 정의
 interface StockState {
   selectedSymbol: string | null;
   selectedName: string | null;
+  selectedInterval: string;
   searchResults: StockSearchResult[];
   candles: CandleData[];
   currentPrice: CurrentPrice | null;
   isLoading: boolean;
   error: string | null;
+  // 캐시/스테일 상태
+  isStaleData: boolean;
+  lastFetchedKey: string | null; // "symbol_interval" - 중복 호출 방지
+  // 마켓 지수
+  marketQuotes: MarketQuote[];
+  isMarketLoading: boolean;
+  isMarketStale: boolean;
 }
 
-// 스토어 액션 타입 정의
 interface StockActions {
   setSelectedSymbol: (symbol: string | null, name?: string | null) => void;
+  setSelectedInterval: (interval: string) => void;
   searchStock: (keyword: string) => Promise<void>;
-  fetchCandles: (symbol: string, interval?: string) => Promise<void>;
+  fetchCandles: (symbol: string, interval?: string, forceRefresh?: boolean) => Promise<void>;
   updateCurrentPrice: (price: CurrentPrice) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearSearchResults: () => void;
+  fetchMarketQuotes: (forceRefresh?: boolean) => Promise<void>;
 }
 
-// 스토어 전체 타입
 type StockStore = StockState & StockActions;
 
-/**
- * Zustand 전역 상태 관리 스토어
- * 주식 검색, 차트 데이터, 실시간 가격을 관리
- */
-export const useStockStore = create<StockStore>((set) => ({
-  // 초기 상태
+export const useStockStore = create<StockStore>((set, get) => ({
   selectedSymbol: null,
   selectedName: null,
+  selectedInterval: '1day',
   searchResults: [],
   candles: [],
   currentPrice: null,
   isLoading: false,
   error: null,
+  isStaleData: false,
+  lastFetchedKey: null,
+  marketQuotes: [],
+  isMarketLoading: false,
+  isMarketStale: false,
 
-  // 선택된 종목 설정
   setSelectedSymbol: (symbol, name = null) =>
     set({
       selectedSymbol: symbol,
       selectedName: name,
       searchResults: [],
       error: null,
+      isStaleData: false,
     }),
 
-  // 종목 검색 실행
+  setSelectedInterval: (interval: string) =>
+    set({ selectedInterval: interval }),
+
   searchStock: async (keyword: string) => {
     if (!keyword.trim()) {
       set({ searchResults: [] });
       return;
     }
 
-    console.log(`[Store] 종목 검색 시작: keyword=${keyword}`);
     set({ isLoading: true, error: null });
 
     try {
       const results = await searchStocks(keyword);
-      console.log(`[Store] 종목 검색 완료: ${results.length}건`, results);
       set({ searchResults: results, isLoading: false });
     } catch (error) {
-      // 검색 실패 시 에러 메시지 설정
       const message =
-        error instanceof Error ? error.message : '종목 검색 중 오류가 발생했습니다.';
+        error instanceof RateLimitError
+          ? '요청 한도 초과 — 잠시 후 다시 시도해주세요'
+          : error instanceof Error
+            ? error.message
+            : '종목 검색 중 오류가 발생했습니다.';
       set({ error: message, isLoading: false, searchResults: [] });
     }
   },
 
-  // 캔들 차트 데이터 조회
-  fetchCandles: async (symbol: string, interval: string = '1day') => {
-    console.log(`[Store] 캔들 데이터 요청: symbol=${symbol}, interval=${interval}`);
-    set({ isLoading: true, error: null });
+  fetchCandles: async (symbol: string, interval: string = '1day', forceRefresh: boolean = false) => {
+    // 중복 호출 방지: 같은 symbol+interval을 강제 새로고침 아닌데 또 호출하면 스킵
+    const fetchKey = `${symbol}_${interval}`;
+    const state = get();
+    if (!forceRefresh && state.lastFetchedKey === fetchKey && state.candles.length > 0) {
+      return;
+    }
+
+    set({ isLoading: true, error: null, isStaleData: false });
 
     try {
-      const data = await getCandles(symbol, interval);
-      console.log(`[Store] 캔들 데이터 완료: ${data.length}건`, data);
-      set({ candles: data, isLoading: false });
+      const result = await getCandles(symbol, interval, forceRefresh);
+      set({
+        candles: result.candles,
+        isLoading: false,
+        isStaleData: result.isStale,
+        lastFetchedKey: fetchKey,
+        error: result.isStale ? null : null,
+      });
     } catch (error) {
-      // 데이터 조회 실패 시 에러 메시지 설정
       const message =
-        error instanceof Error
-          ? error.message
-          : '차트 데이터를 불러오는 중 오류가 발생했습니다.';
+        error instanceof RateLimitError
+          ? '요청 한도 초과 — 잠시 후 다시 시도해주세요'
+          : error instanceof Error
+            ? error.message
+            : '차트 데이터를 불러오는 중 오류가 발생했습니다.';
       set({ error: message, isLoading: false, candles: [] });
     }
   },
 
-  // 실시간 가격 업데이트
   updateCurrentPrice: (price: CurrentPrice) =>
     set({ currentPrice: price }),
 
-  // 로딩 상태 설정
   setLoading: (loading: boolean) =>
     set({ isLoading: loading }),
 
-  // 에러 메시지 설정
   setError: (error: string | null) =>
     set({ error }),
 
-  // 검색 결과 초기화
   clearSearchResults: () =>
     set({ searchResults: [] }),
+
+  fetchMarketQuotes: async (forceRefresh: boolean = false) => {
+    set({ isMarketLoading: true });
+
+    try {
+      const result = await getMarketQuotes(forceRefresh);
+      set({
+        marketQuotes: result.quotes,
+        isMarketLoading: false,
+        isMarketStale: result.isStale,
+      });
+    } catch {
+      set({ isMarketLoading: false, isMarketStale: true });
+    }
+  },
 }));
 
 export default useStockStore;

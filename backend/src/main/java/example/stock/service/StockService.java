@@ -1,6 +1,7 @@
 package example.stock.service;
 
 import example.stock.cache.StockCacheService;
+import example.stock.dto.MarketQuoteResponse;
 import example.stock.dto.StockCandleResponse;
 import example.stock.dto.StockSearchResponse;
 import org.slf4j.Logger;
@@ -53,6 +54,33 @@ public class StockService {
             return results != null ? results : Collections.emptyList();
         } catch (Exception e) {
             log.error("종목 검색 실패: keyword={}, error={}", keyword, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 마켓 지수 시세를 일괄 조회한다.
+     * Redis 캐시를 먼저 확인하고, 없으면 API를 호출한 뒤 결과를 캐싱한다.
+     *
+     * @param symbols 쉼표로 연결된 심볼 목록
+     * @return 시세 응답 목록
+     */
+    public List<MarketQuoteResponse> getQuotes(String symbols) {
+        Optional<List<MarketQuoteResponse>> cached = cacheService.getCachedQuotes(symbols);
+        if (cached.isPresent()) {
+            log.info("시세 캐시 적중: symbols={}", symbols);
+            return cached.get();
+        }
+
+        log.info("시세 캐시 미스: API 호출 시작, symbols={}", symbols);
+        try {
+            List<MarketQuoteResponse> results = apiService.getQuotes(symbols).block();
+            if (results != null && !results.isEmpty()) {
+                cacheService.cacheQuotes(symbols, results);
+            }
+            return results != null ? results : Collections.emptyList();
+        } catch (Exception e) {
+            log.error("시세 일괄 조회 실패: symbols={}, error={}", symbols, e.getMessage());
             return Collections.emptyList();
         }
     }

@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(find /Users/hyunsu/Proj/stockProject/stockProject/backend/src/main/resources -type f -name \"*.yml\" -o -name \"*.yaml\" | xargs cat)",
+      "Bash(cd /Users/hyunsu/Proj/stockProject/stockProject/frontend && npx tsc --noEmit 2>&1 | head -30)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(cd:*)"
     ]
   }
 }

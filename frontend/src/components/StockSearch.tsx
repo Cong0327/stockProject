@@ -2,10 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useStockStore } from '../store/stockStore';
 import LoadingSpinner from './LoadingSpinner';
 
-/**
- * 주식 종목 검색 컴포넌트
- * 디바운스가 적용된 검색 입력과 결과 드롭다운을 제공
- */
 const StockSearch: React.FC = () => {
   const [keyword, setKeyword] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -14,18 +10,17 @@ const StockSearch: React.FC = () => {
 
   const searchResults = useStockStore((state) => state.searchResults);
   const isLoading = useStockStore((state) => state.isLoading);
+  const selectedInterval = useStockStore((state) => state.selectedInterval);
   const searchStock = useStockStore((state) => state.searchStock);
   const setSelectedSymbol = useStockStore((state) => state.setSelectedSymbol);
   const fetchCandles = useStockStore((state) => state.fetchCandles);
   const clearSearchResults = useStockStore((state) => state.clearSearchResults);
 
-  // 디바운스 검색 처리 (300ms 지연)
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       setKeyword(value);
 
-      // 이전 디바운스 타이머 정리
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
@@ -36,7 +31,6 @@ const StockSearch: React.FC = () => {
         return;
       }
 
-      // 300ms 후 검색 실행
       debounceRef.current = setTimeout(() => {
         searchStock(value);
         setShowDropdown(true);
@@ -45,18 +39,16 @@ const StockSearch: React.FC = () => {
     [searchStock, clearSearchResults]
   );
 
-  // 검색 결과 항목 클릭 핸들러
   const handleResultClick = useCallback(
     (symbol: string, name: string) => {
       setSelectedSymbol(symbol, name);
-      fetchCandles(symbol);
+      fetchCandles(symbol, selectedInterval);
       setKeyword(symbol);
       setShowDropdown(false);
     },
-    [setSelectedSymbol, fetchCandles]
+    [setSelectedSymbol, fetchCandles, selectedInterval]
   );
 
-  // 드롭다운 외부 클릭 감지하여 닫기
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -71,7 +63,6 @@ const StockSearch: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 컴포넌트 언마운트 시 디바운스 타이머 정리
   useEffect(() => {
     return () => {
       if (debounceRef.current) {
@@ -82,21 +73,25 @@ const StockSearch: React.FC = () => {
 
   return (
     <div className="search-container" ref={containerRef}>
+      <span className="search-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+        </svg>
+      </span>
       <input
         type="text"
         className="search-input"
-        placeholder="종목명 또는 심볼을 입력하세요 (예: AAPL, 삼성전자)"
+        placeholder="종목명 또는 심볼 검색 (예: AAPL, TSLA, NVDA)"
         value={keyword}
         onChange={handleInputChange}
         onFocus={() => {
-          // 입력값이 있고 검색 결과가 있으면 드롭다운 표시
           if (keyword.trim() && searchResults.length > 0) {
             setShowDropdown(true);
           }
         }}
       />
 
-      {/* 검색 결과 드롭다운 */}
       {showDropdown && (
         <div className="search-dropdown">
           {isLoading ? (
@@ -122,10 +117,11 @@ const StockSearch: React.FC = () => {
               style={{
                 padding: '16px',
                 textAlign: 'center',
-                color: '#5a6a8a',
+                color: '#64748b',
+                fontSize: '0.8rem',
               }}
             >
-              검색 결과가 없습니다.
+              검색 결과가 없습니다
             </div>
           )}
         </div>

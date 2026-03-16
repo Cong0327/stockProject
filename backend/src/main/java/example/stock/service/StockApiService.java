@@ -1,5 +1,6 @@
 package example.stock.service;
 
+import example.stock.dto.MarketQuoteResponse;
 import example.stock.dto.StockCandleResponse;
 import example.stock.dto.StockSearchResponse;
 import org.slf4j.Logger;
@@ -170,6 +171,69 @@ public class StockApiService {
                     log.error("가격 조회 API 호출 실패: symbol={}, error={}", symbol, e.getMessage());
                     return Mono.empty();
                 });
+    }
+
+    /**
+     * 여러 종목의 시세를 일괄 조회한다.
+     * Twelve Data /quote 엔드포인트에 쉼표로 연결된 심볼을 전달하여 단일 호출로 조회한다.
+     *
+     * @param symbols 쉼표로 연결된 심볼 목록 (예: "IXIC,SPX,BTC/USD")
+     * @return 시세 응답 목록
+     */
+    @SuppressWarnings("unchecked")
+    public Mono<List<MarketQuoteResponse>> getQuotes(String symbols) {
+        if (!acquireRateLimit()) {
+            log.warn("속도 제한 초과: 시세 일괄 조회 요청이 거부됨");
+            return Mono.just(Collections.emptyList());
+        }
+
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/quote")
+                        .queryParam("symbol", symbols)
+                        .queryParam("apikey", apiKey)
+                        .build())
+                .retrieve()
+                .bodyToMono(Object.class)
+                .map(response -> {
+                    List<MarketQuoteResponse> quotes = new ArrayList<>();
+
+                    if (response instanceof Map) {
+                        Map<String, Object> responseMap = (Map<String, Object>) response;
+
+                        // 단일 심볼 응답: {symbol, close, percent_change, ...}
+                        if (responseMap.containsKey("symbol")) {
+                            quotes.add(parseQuote(responseMap));
+                        } else {
+                            // 다중 심볼 응답: {IXIC: {...}, SPX: {...}, ...}
+                            for (Map.Entry<String, Object> entry : responseMap.entrySet()) {
+                                if (entry.getValue() instanceof Map) {
+                                    Map<String, Object> quoteData = (Map<String, Object>) entry.getValue();
+                                    quotes.add(parseQuote(quoteData));
+                                }
+                            }
+                        }
+                    }
+
+                    return quotes;
+                })
+                .doFinally(signal -> releaseRateLimit())
+                .onErrorResume(e -> {
+                    log.error("시세 일괄 조회 API 호출 실패: symbols={}, error={}", symbols, e.getMessage());
+                    return Mono.just(Collections.emptyList());
+                });
+    }
+
+    /**
+     * Twelve Data /quote 응답에서 MarketQuoteResponse를 파싱한다.
+     */
+    private MarketQuoteResponse parseQuote(Map<String, Object> data) {
+        return MarketQuoteResponse.builder()
+                .symbol((String) data.get("symbol"))
+                .name((String) data.get("name"))
+                .close(parseDouble(data.get("close")))
+                .percent_change(parseDouble(data.get("percent_change")))
+                .build();
     }
 
     /**

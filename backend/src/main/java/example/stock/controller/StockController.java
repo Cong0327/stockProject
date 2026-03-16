@@ -1,5 +1,6 @@
 package example.stock.controller;
 
+import example.stock.dto.MarketQuoteResponse;
 import example.stock.dto.StockCandleResponse;
 import example.stock.dto.StockSearchResponse;
 import example.stock.service.StockService;
@@ -41,6 +42,22 @@ public class StockController {
         log.info("종목 검색 요청: keyword={}", keyword);
         List<StockSearchResponse> results = stockService.searchStock(keyword);
         log.info("종목 검색 응답: keyword={}, 결과 수={}", keyword, results.size());
+        return ResponseEntity.ok(results);
+    }
+
+    /**
+     * 마켓 지수 시세를 일괄 조회한다.
+     * Twelve Data /quote API를 통해 여러 심볼의 시세를 한 번에 가져온다.
+     *
+     * @param symbols 쉼표로 연결된 심볼 목록 (예: "IXIC,SPX,BTC/USD,ETH/USD")
+     * @return 시세 응답 목록
+     */
+    @GetMapping("/quotes")
+    public ResponseEntity<List<MarketQuoteResponse>> getQuotes(
+            @RequestParam String symbols) {
+        log.info("시세 일괄 조회 요청: symbols={}", symbols);
+        List<MarketQuoteResponse> results = stockService.getQuotes(symbols);
+        log.info("시세 일괄 조회 응답: symbols={}, 결과 수={}", symbols, results.size());
         return ResponseEntity.ok(results);
     }
 
