@@ -11,7 +11,7 @@ import { useStockStore } from '../store/stockStore';
 const INTERVAL_OPTIONS = [
   { value: '1min', label: '1분' },
   { value: '5min', label: '5분' },
-  { value: '1hour', label: '60분' },
+  { value: '1h', label: '60분' },
   { value: '1day', label: '일봉' },
   { value: '1week', label: '주봉' },
   { value: '1month', label: '월봉' },

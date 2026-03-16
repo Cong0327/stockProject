@@ -131,7 +131,7 @@ export async function getCandles(
       params: { symbol, interval },
     });
 
-    const isIntraday = ['1min', '5min', '15min', '30min', '1hour'].includes(interval);
+    const isIntraday = ['1min', '5min', '15min', '30min', '45min', '1h', '2h', '4h'].includes(interval);
 
     const candles = (response.data.candles || []).map((c) => ({
       // 분봉/시간봉: Unix timestamp(초)로 변환 (lightweight-charts 요구사항)
