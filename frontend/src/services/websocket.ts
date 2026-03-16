@@ -22,6 +22,7 @@ class WebSocketManager {
   private messageCallbacks: MessageCallback[] = [];
   private reconnectAttempts: number = 0;
   private maxReconnectDelay: number = 30000;
+  private maxReconnectAttempts: number = 5;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private currentSymbol: string | null = null;
   private _state: ConnectionState = 'disconnected';
@@ -108,6 +109,12 @@ class WebSocketManager {
    * 1초 -> 2초 -> 4초 -> ... -> 최대 30초
    */
   private scheduleReconnect(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.warn(`[WS] 최대 재연결 횟수(${this.maxReconnectAttempts}회) 초과 — 연결 중단`);
+      this.shouldReconnect = false;
+      return;
+    }
+
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
     }
@@ -117,7 +124,7 @@ class WebSocketManager {
       this.maxReconnectDelay
     );
 
-    console.log(`${delay / 1000}초 후 재연결 시도... (시도 횟수: ${this.reconnectAttempts + 1})`);
+    console.log(`[WS] ${delay / 1000}초 후 재연결 시도... (${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectAttempts++;

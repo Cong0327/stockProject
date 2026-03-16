@@ -15,7 +15,13 @@ export function useWebSocket(): void {
 
   // 웹소켓 연결 초기화 및 정리
   useEffect(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws/stock';
+    const wsUrl = import.meta.env.VITE_WS_URL;
+
+    // WS URL이 설정되지 않으면 연결하지 않음 (백엔드 미배포 시 무한 재연결 방지)
+    if (!wsUrl) {
+      console.log('[WS] VITE_WS_URL 미설정 — 웹소켓 비활성화');
+      return;
+    }
 
     // 실시간 가격 데이터 수신 콜백
     const handleMessage = (data: RealTimePrice) => {
