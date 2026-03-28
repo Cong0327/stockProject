@@ -11,4 +11,4 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /app/build/libs/*.jar app.jar
 
-ENTRYPOINT java -Xms64m -Xmx128m -XX:MaxMetaspaceSize=96m -Xss256k -XX:+UseSerialGC -XX:+UseContainerSupport -jar -Dserver.port=${PORT:-8080} app.jar
+ENTRYPOINT java -Xms256m -Xmx512m -XX:MaxMetaspaceSize=128m -Xss256k -XX:+UseSerialGC -XX:+UseContainerSupport -jar -Dserver.port=${PORT:-8080} app.jar
