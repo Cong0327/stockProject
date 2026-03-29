@@ -20,6 +20,9 @@ frontend/.env.local
 # Docker
 docker/data/
 
+# Study
+STUDY.md
+
 # OS
 .DS_Store
 Thumbs.db
